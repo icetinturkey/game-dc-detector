@@ -48,7 +48,7 @@ When you run the program, Dc Detector will automatically load your previous sett
 You might want to send a notification of your disconnection not just as an alarm, but to another computer. Or you might want a notification to be sent to your Telegram. How you code your existing backend system is up to you. However, Dc Detector can notify your system of your disconnection by sending a GET request to it.
 
 I use SlimPHP for this task. When a request comes in, I save it to a MySQL database. Then, I check whether there are any changes in the table using JS AJAX. Of course, these are not things simple enough to share entirely here. However, I am still sharing my SlimPHP endpoint that saves incoming notifications to the database;
-```html
+```php
 $app->get('/rust_newnotify', function (Request $request, Response $response, $args) {
     $conn = mysqli_connect("localhost", db_user, db_pass, db_name);
     if (!$conn) {
