@@ -15,18 +15,27 @@
 - **3**: Complete the installation by answering "yes" to the confirmation prompts.
 - **4**: Restart your computer.
 ## :hammer_and_wrench: 1A) I want to compile the program myself
-- **1**: Create a new project using [Rust Cargo](https://doc.rust-lang.org/cargo).
+- **1**: Create a new project using [Rust Cargo](https://doc.rust-lang.org/cargo);
+   ```sh
+   cargo new dcdetector
+   ```
 - **2**: Replace the `main.rs` file with the one provided in this repository.
 - **3**: Compile it by running the following command;
    ```sh
    cargo build --release
    ```
 ## :rocket: 1B) I don't want to deal with compiling
-- **1**: Simply [Rust Cargo](https://github.com/icetinturkey/game-dc-detector/releases) to download the `dcdetector.exe` file.
+- **1**: Simply [click here](https://github.com/icetinturkey/game-dc-detector/releases) to download the `dcdetector.exe` file.
+## :gear: How to Setup
+#### Setting up the program can be a bit confusing. However, once you handle this, Dc Detector will save your data to a txt file. For every subsequent use, all you will need to do is start it.
+#### The first thing you need to do is select which monitor your game is currently running on. If you are already using a single monitor, you can skip this step. This part is very important: `Your game must run in windowed mode`.
+#### The next thing you need to set is the workspace coordinates. You can simply set this to 0,0 and 1920,1080 for a Full HD monitor to capture a photo of the entire screen. However, this will put a heavy load on your computer and make it very difficult for the OCR engine to detect the text. Therefore, it is strongly recommended that you shrink the area to be photographed as much as possible through trial and error.
+#### The next stage is which word to search for in the photo. This word should be simple. Like: "disconnect", "terminate", or "lost". When it catches this word in the photo, an alarm will sound on your computer.
+#### Finally, there is the Link section, but I will detail this in a separate section later. If you do not have sufficient programming knowledge, you can leave this box empty. The program will still run smoothly.
 ##### &nbsp;
 ##### &nbsp;
-## :coffee: Bana bir kahve ısmarla
-Bu paylaşım topluluğunun büyümesini sağlamak için depomu favorilere ekleyebilir veya bana bağışta bulunabilirsiniz.
+## :coffee: Buy me a coffee
+To help this community grow, you can add my repository to your favorites or make a donation to me.
 * Litecoin
   ```sh
   LMuSGiA477Pw3DFaEixMoAaL8XBWJQmaAW
