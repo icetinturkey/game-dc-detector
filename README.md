@@ -8,9 +8,10 @@
 ## :sparkles: Getting Started
 #### This software is coded entirely in Rust for the Windows platform and uses the Tesseract OCR engine to read text on the screen. Therefore, the first thing you need to do is install it on your computer. Don't worry, installing it is very simple.
 - **1**:Type "cmd" in the Start search box and run it as administrator. Then, run the command below.
-- **2**:```sh
-  winget install -e --id UB-Mannheim.TesseractOCR
-  ```
+- **2**:
+```sh
+winget install -e --id UB-Mannheim.TesseractOCR
+```
 - **3**:Complete the installation by answering "yes" to the confirmation prompts.
 - **4**:Restart your computer.
 ## :hammer_and_wrench: How to Compile
