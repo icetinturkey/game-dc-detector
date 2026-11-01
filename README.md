@@ -15,7 +15,7 @@
    ```
 - **3**: Complete the installation by answering "yes" to the confirmation prompts.
 - **4**: Restart your computer.
-
+##### &nbsp;
 ## :hammer_and_wrench: 2A) I want to compile the program myself
 - **1**: Create a new project using [Rust Cargo](https://doc.rust-lang.org/cargo);
    ```sh
@@ -28,7 +28,7 @@
    ```
 ## :rocket: 2B) I don't want to deal with compiling
 - **1**: Simply [click here](https://github.com/icetinturkey/game-dc-detector/releases) to download the `dcdetector.exe` file.
-
+##### &nbsp;
 ## :gear: 3) How to Setup
 Setting up the program can be a bit confusing. However, once you handle this, Dc Detector will save your data to a txt file. For every subsequent use, all you will need to do is start it.
 
@@ -39,14 +39,48 @@ The next thing you need to set is the workspace coordinates. You can simply set 
 The next stage is which word to search for in the photo. This word should be simple. Like: "disconnect", "terminate", or "lost". When it catches this word in the photo, an alarm will sound on your computer.
 
 Finally, there is the Link section, but I will detail this in a separate section later. If you do not have sufficient programming knowledge, you can leave this box empty. The program will still run smoothly.
-
+##### &nbsp;
 ## :arrow_forward: 4) How to Run
 When you run the program, Dc Detector will automatically load your previous settings. All you need to do is click the `Start` button.
-
+##### &nbsp;
 ## :satellite: 5) Sending a notification to a remote computer (optional)
 #### If you do not have sufficient programming knowledge or an expert who can help you, skip this section.
 You might want to send a notification of your disconnection not just as an alarm, but to another computer. Or you might want a notification to be sent to your Telegram. How you code your existing backend system is up to you. However, Dc Detector can notify your system of your disconnection by sending a GET request to it.
-I use SlimPHP for this task. When a request comes in, I save it to a MySQL database. Then, I check whether there are any changes in the table using JS AJAX. Of course, these are not things simple enough to share entirely here. However, I am still sharing my SlimPHP endpoint that saves incoming notifications to the database.
+
+I use SlimPHP for this task. When a request comes in, I save it to a MySQL database. Then, I check whether there are any changes in the table using JS AJAX. Of course, these are not things simple enough to share entirely here. However, I am still sharing my SlimPHP endpoint that saves incoming notifications to the database;
+```html
+$app->get('/rust_newnotify', function (Request $request, Response $response, $args) {
+    $conn = mysqli_connect("localhost", db_user, db_pass, db_name);
+    if (!$conn) {
+        $errorPayload = json_encode(['success' => false, 'message' => 'Database connection error.']);
+        $response->getBody()->write($errorPayload);
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+    mysqli_set_charset($conn, "utf8mb4");
+    $queryParams = $request->getQueryParams();
+    $pcName = $queryParams['pc_name'] ?? '';
+    $sql = "INSERT INTO rust_dcdetector (pc_name) VALUES (?)";
+    $stmt = mysqli_prepare($conn, $sql);
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "s", $pcName);
+        $executeResult = mysqli_stmt_execute($stmt);
+        if ($executeResult) {
+            $payload = json_encode(['success' => true, 'message' => 'The record was successfully added.']);
+            $statusCode = 200;
+        } else {
+            $payload = json_encode(['success' => false, 'message' => 'The record could not be added.']);
+            $statusCode = 500;
+        }
+        mysqli_stmt_close($stmt);
+    } else {
+        $payload = json_encode(['success' => false, 'message' => 'Query preparation error.']);
+        $statusCode = 500;
+    }
+    mysqli_close($conn);
+    $response->getBody()->write($payload);
+    return $response->withHeader('Content-Type', 'application/json')->withStatus($statusCode);
+});
+```
 ##### &nbsp;
 ##### &nbsp;
 ## :coffee: Buy me a coffee
