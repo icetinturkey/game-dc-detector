@@ -4,9 +4,11 @@ use screenshots::Screen;
 use std::time::{Duration, Instant};
 use std::fs;
 use std::thread;
-use std::process::Command; // Windows bip sesi için eklendi
+use std::sync::mpsc;
+use std::process::Command;
 use image::{RgbaImage, DynamicImage};
 use rusty_tesseract::{Args, Image as TesseractImage};
+use std::os::windows::process::CommandExt;
 
 fn main() -> Result<(), eframe::Error> {
     let current_path = std::env::var("PATH").unwrap_or_default();
@@ -15,7 +17,6 @@ fn main() -> Result<(), eframe::Error> {
     }
 
     let options = eframe::NativeOptions::default();
-
     let mut is_running = false;
     let mut last_capture_time = Instant::now();
     let mut texture: Option<TextureHandle> = None;
@@ -47,11 +48,17 @@ fn main() -> Result<(), eframe::Error> {
         }
     }
 
+    let (tx, rx) = mpsc::channel();
+
     eframe::run_ui_native("Game Disconnect Detector", options, move |ui, _frame| {
         ui.ctx().set_visuals(egui::Visuals::light());
         ui.painter().rect_filled(ui.max_rect(), 0.0, ui.visuals().panel_fill);
         let screens = Screen::all().unwrap_or_default();
         
+        if let Ok(new_text) = rx.try_recv() {
+            detected_text = new_text;
+        }
+
         ui.horizontal(|ui| {
             ui.label("Monitor:");
             egui::ComboBox::from_id_salt("screen_selector")
@@ -95,9 +102,9 @@ fn main() -> Result<(), eframe::Error> {
             if ui.button("▶ Start").clicked() {
                 is_running = true;
                 last_capture_time = Instant::now() - Duration::from_secs(5);
-                
                 let save_data = format!("{}\n{}\n{}\n{}\n{}\n{}", x1, y1, x2, y2, target_text, link_text);
                 let _ = fs::write("data.txt", save_data);
+                detected_text = "Waiting...".to_string();
             }
             if ui.button("⏹ Stop").clicked() {
                 is_running = false;
@@ -111,12 +118,10 @@ fn main() -> Result<(), eframe::Error> {
             
             if last_capture_time.elapsed() >= Duration::from_secs(5) {
                 if let Some(screen) = screens.get(selected_screen_index) {
-                    
                     let px1 = x1.parse::<i32>().unwrap_or(0);
                     let py1 = y1.parse::<i32>().unwrap_or(0);
                     let px2 = x2.parse::<i32>().unwrap_or(0);
                     let py2 = y2.parse::<i32>().unwrap_or(0);
-                    
                     let width = (px2 - px1).max(1) as u32;
                     let height = (py2 - py1).max(1) as u32;
 
@@ -135,42 +140,48 @@ fn main() -> Result<(), eframe::Error> {
                             ));
                         }
 
-                        if let Some(rgba_img) = RgbaImage::from_raw(width, height, raw_pixels) {
-                            let dyn_img = DynamicImage::ImageRgba8(rgba_img).grayscale();
-                            
-                            if let Ok(tes_img) = TesseractImage::from_dynamic_image(&dyn_img) {
-                                let args = Args::default();
-                                
-                                match rusty_tesseract::image_to_string(&tes_img, &args) {
-                                    Ok(text) => {
-                                        let cleaned = text.replace('\n', " ").replace('\r', "").trim().to_string();
-                                        detected_text = if cleaned.is_empty() {
-                                            "Text not found.".to_string()
-                                        } else {
-                                            cleaned
-                                        };
+                        let tx_clone = tx.clone();
+                        let target_clone = target_text.clone();
+                        let link_clone = link_text.clone();
 
-                                        if !target_text.is_empty() && detected_text.to_lowercase().contains(&target_text.to_lowercase()) {
-                                            let link_clone = link_text.clone();
-                                            
-                                            thread::spawn(move || {
+                        thread::spawn(move || {
+                            if let Some(rgba_img) = RgbaImage::from_raw(width, height, raw_pixels) {
+                                let mut dyn_img = DynamicImage::ImageRgba8(rgba_img).grayscale();
+                                dyn_img = dyn_img.adjust_contrast(10.0);
+                                
+                                if let Ok(tes_img) = TesseractImage::from_dynamic_image(&dyn_img) {
+                                    let mut args = Args::default();
+                                    args.lang = "eng+tur".to_string(); 
+                                    args.psm = Some(11);
+                                    let mut config = std::collections::HashMap::new();
+                                    config.insert("tessedit_char_blacklist".to_string(), "|[]{}()<>*&^%$#@!~_\\/".to_string());
+                                    args.config_variables = config;
+                                    
+                                    match rusty_tesseract::image_to_string(&tes_img, &args) {
+                                        Ok(text) => {
+                                            let cleaned = text.replace('\n', " ").replace('\r', "").trim().to_string();
+                                            let final_text = if cleaned.is_empty() {
+                                                "Text not found.".to_string()
+                                            } else {
+                                                cleaned
+                                            };
+
+                                            if !target_clone.is_empty() && final_text.to_lowercase().contains(&target_clone.to_lowercase()) {
                                                 if !link_clone.is_empty() {
                                                     let _ = reqwest::blocking::get(&link_clone);
                                                 }
-
-                                                // Hiçbir harici pakete gerek kalmadan yerleşik olarak Windows'a bip sesi çaldırıyoruz
-                                                let _ = Command::new("powershell")
-                                                    .args(["-c", "[console]::beep(440,500)"])
-                                                    .output();
-                                            });
+                                                let _ = Command::new("powershell").args(["-c", "[console]::beep(440,500)"]).creation_flags(0x08000000).output();
+                                            }
+                                            
+                                            let _ = tx_clone.send(final_text);
                                         }
-                                    }
-                                    Err(_) => {
-                                        detected_text = "Error: Tesseract not found!".to_string();
+                                        Err(_) => {
+                                            let _ = tx_clone.send("Error: Tesseract not found!".to_string());
+                                        }
                                     }
                                 }
                             }
-                        }
+                        });
                     }
                 }
                 last_capture_time = Instant::now();
